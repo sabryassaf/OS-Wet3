@@ -1,13 +1,12 @@
 #include "node.h"
 
-
-typedef struct node_t {
+struct node_t {
     struct timeval arrivalTime;
     struct timeval dispatchTime;
     struct timeval pickupTime;
     int fd;
     struct node_t *next;
-}*Node;
+};
 
 Node createNode(int fd, struct timeval arrivalTime)
 {
@@ -17,7 +16,7 @@ Node createNode(int fd, struct timeval arrivalTime)
         newNode->arrivalTime = arrivalTime;
         newNode->fd = fd;
     }
-    return *newNode;
+    return newNode;
 }
 
 /*int getFd(Node node)
@@ -28,22 +27,22 @@ Node createNode(int fd, struct timeval arrivalTime)
     return -1;
 }*/
 
-timeval* getArrivalTime(Node node)
+struct timeval* getArrivalTime(Node node)
 {
-    return &(node.arrivalTime);
+    return &(node->arrivalTime);
 }
-timeval* getDispatchTime(Node node)
+struct timeval* getDispatchTime(Node node)
 {
-    return &(node.dispatchTime);
+    return &(node->dispatchTime);
 }
-timeval* getPickUpTime(Node node)
+struct timeval* getPickUpTime(Node node)
 {
-    return &(node.pickupTime);
+    return &(node->pickupTime);
 }
 
-bool equal(Node n1, Node n2)
-{
-    if ((n1->fd == n2->fd) && (n1->arrivalTime == n2->arrivalTime))
-        return true;
-    return false;
-}
+// bool equal(Node n1, Node n2)
+// {
+//     if (n1->fd == n2->fd)
+//         return true;
+//     return false;
+// }

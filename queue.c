@@ -1,8 +1,56 @@
 #include "queue.h"
 
+struct node_t {
+    struct timeval arrivalTime;
+    struct timeval dispatchTime;
+    struct timeval pickupTime;
+    int fd;
+    struct node_t *next;
+};
+
+Node createNode(int fd, struct timeval arrivalTime)
+{
+    Node newNode = malloc(sizeof(struct node_t));
+    if (newNode) {
+        newNode->next = NULL;
+        newNode->arrivalTime = arrivalTime;
+        newNode->fd = fd;
+    }
+    return newNode;
+}
+
+/*int getFd(Node node)
+{
+    if(node){
+        return node->fd;
+    }
+    return -1;
+}*/
+
+struct timeval* getArrivalTime(Node node)
+{
+    return &(node->arrivalTime);
+}
+struct timeval* getDispatchTime(Node node)
+{
+    return &(node->dispatchTime);
+}
+struct timeval* getPickUpTime(Node node)
+{
+    return &(node->pickupTime);
+}
+
+// bool equal(Node n1, Node n2)
+// {
+//     if (n1->fd == n2->fd)
+//         return true;
+//     return false;
+// }
+
+
 typedef struct queue_t{
     int size;
-    Node* head;
+    Node head;
 } *Queue;
 
 Queue createQueue()
@@ -42,33 +90,33 @@ int getSize(Queue queue)
 Node getFirstRequest(Queue queue)
 {
     if((queue) && (queue->head)){
-        return queue->head
+        return queue->head;
     }
     return NULL;
 }
 
-bool find(Queue queue, Node toFind)
-{
-    if(queue){
-        Node head = queue->head;
-        while(head){
-            if(equal(head, toFind)){
-                return true;
-            }
-            head = head->next;
-        }
-    }
-    return false;
-}
+// bool find(Queue queue, Node toFind)
+// {
+//     if(queue){
+//         Node head = queue->head;
+//         while(head){
+//             if(equal(head, toFind)){
+//                 return true;
+//             }
+//             head = head->next;
+//         }
+//     }
+//     return false;
+// }
 
 void Enqueue(Queue queue, Node node)
 {
     if (node && queue){
         Node temp = queue->head;
-        if (size == 0)
+        if (queue->size == 0)
         {
             queue->head = node;
-            size = 1;
+            queue->size = 1;
             return;
         }
         while(temp->next){
@@ -93,7 +141,7 @@ Node Dequeue(Queue queue)
 
 void removeByIndex(Queue queue, int idx)
 {
-    if((queue) && (idx <= queue.size)){
+    if((queue) && (idx <= queue->size)){
         Node temp = queue->head;
         if(idx == 0){ //REMOVE THE HEAD
             temp = Dequeue(queue);
@@ -113,15 +161,15 @@ void removeByIndex(Queue queue, int idx)
 
 void removeByFd(Queue queue, int fd)
 {
-    if ((queue) && (queue.head)) {
+    if ((queue) && (queue->head)) {
         Node temp = queue->head;
-        if(queue.head->fd == fd) {
+        if(queue->head->fd == fd) {
             Close(temp->fd);
             Dequeue(queue);
             free(temp);
             return;
         }
-        while((temp->next) && (temp->next->fd != fd) {
+        while((temp->next) && (temp->next->fd != fd)) {
             temp = temp->next;
         }
         if(temp->next) {

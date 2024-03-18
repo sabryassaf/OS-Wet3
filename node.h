@@ -12,8 +12,8 @@ Node createNode(int fd, struct timeval arrival);
 //int getFd(Node node);
 bool equal(Node n1, Node n2);
 
-timeval* getArrivalTime(Node node);
-timeval* getDispatchTime(Node node);
-timeval* getPickUpTime(Node node);
+struct timeval* getArrivalTime(Node node);
+struct timeval* getDispatchTime(Node node);
+struct timeval* getPickUpTime(Node node);
 
 #endif
