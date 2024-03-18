@@ -1,22 +1,49 @@
 #include "node.h"
 
-struct node_custom {
-    struct node_custom *next;
+
+typedef struct node_t {
     struct timeval arrivalTime;
     struct timeval dispatchTime;
     struct timeval pickupTime;
     int fd;
-};
+    struct node_t *next;
+}*Node;
 
-Node node_create(int fd, struct timeval arrivalTime) {
-    Node new_node = malloc(sizeof(struct node_custom));
-    if (!new_node) {
-        return NULL;
-    };
-    // initiate a Node for the job, with the file descriptor and the arrival time
-    new_node->fd = fd;
-    new_node->arrivalTime = arrivalTime;
-    new_node->next = NULL;
-    return new_node;
-    
+Node createNode(int fd, struct timeval arrivalTime)
+{
+    Node newNode = malloc(sizeof(struct node_t));
+    if (newNode) {
+        newNode->next = NULL;
+        newNode->arrivalTime = arrivalTime;
+        newNode->fd = fd;
+    }
+    return *newNode;
+}
+
+/*int getFd(Node node)
+{
+    if(node){
+        return node->fd;
+    }
+    return -1;
+}*/
+
+timeval* getArrivalTime(Node node)
+{
+    return &(node.arrivalTime);
+}
+timeval* getDispatchTime(Node node)
+{
+    return &(node.dispatchTime);
+}
+timeval* getPickUpTime(Node node)
+{
+    return &(node.pickupTime);
+}
+
+bool equal(Node n1, Node n2)
+{
+    if ((n1->fd == n2->fd) && (n1->arrivalTime == n2->arrivalTime))
+        return true;
+    return false;
 }
