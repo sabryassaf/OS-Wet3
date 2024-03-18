@@ -105,12 +105,33 @@ int main(int argc, char *argv[])
     //initiate the threads
     for (int i = 0; i < numberOfThreads; i++) {
         //initiate a new thread object for each thread and attach it to the handler
-        Thread thread = 
+        Thread thread = newThread(i);
         //attach the threads to the thread handler
         pthread_create(&threadsArray[i], NULL, threadHandler, NULL);
     }
     
+    //initiate the two buffer as queue 
+    //TODO: change the queue name
 
+    Queue waitingRequestsBuffer = newQueue();
+    if (!waitingRequestsBuffer) {
+        //malloc failed, destory pthread conditions and mutex lock
+        pthread_cond_destroy(&available_buffer);
+        pthread_cond_destroy(&flusshed_queue);
+        pthread_mutex_destroy(&lock);
+        free(threadsArray);
+    }
+
+    Queue wokringRequestsBuffer = newQueue();
+    if (!wokringRequestsBuffer) {
+        //malloc failed, destory pthread conditions and mutex lock
+        pthread_cond_destroy(&available_buffer);
+        pthread_cond_destroy(&flusshed_queue);
+        pthread_mutex_destroy(&lock);
+        free(threadsArray);
+        free(waitingRequestsBuffer);
+    }
+    
 
     listenfd = Open_listenfd(port);
     while (1) {
