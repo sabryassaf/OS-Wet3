@@ -13,6 +13,10 @@
 //
 
 // HW3: Parse the new arguments too
+
+
+Queue waitingRequestsBuffer;
+Queue wokringRequestsBuffer;
 void getargs(int *port, int argc, char *argv[], int* numberOfThreads, int* queueSize, char* schedAlgorithm)
 {   
 
@@ -43,6 +47,7 @@ void getargs(int *port, int argc, char *argv[], int* numberOfThreads, int* queue
 
 
 }
+
 
 void* threadHandler(void* arg) {
 
@@ -105,15 +110,14 @@ int main(int argc, char *argv[])
     //initiate the threads
     for (int i = 0; i < numberOfThreads; i++) {
         //initiate a new thread object for each thread and attach it to the handler
-        Thread thread = newThread(i);
+        Thread thread = createThread(i);
+
         //attach the threads to the thread handler
-        pthread_create(&threadsArray[i], NULL, threadHandler, NULL);
+        pthread_create(&threadsArray[i], NULL, threadHandler, thread);
     }
     
     //initiate the two buffer as queue 
-    //TODO: change the queue name
-
-    Queue waitingRequestsBuffer = newQueue();
+     waitingRequestsBuffer = newQueue();
     if (!waitingRequestsBuffer) {
         //malloc failed, destory pthread conditions and mutex lock
         pthread_cond_destroy(&available_buffer);
@@ -122,7 +126,7 @@ int main(int argc, char *argv[])
         free(threadsArray);
     }
 
-    Queue wokringRequestsBuffer = newQueue();
+    wokringRequestsBuffer = newQueue();
     if (!wokringRequestsBuffer) {
         //malloc failed, destory pthread conditions and mutex lock
         pthread_cond_destroy(&available_buffer);
@@ -131,21 +135,75 @@ int main(int argc, char *argv[])
         free(threadsArray);
         free(waitingRequestsBuffer);
     }
-    
 
+    //initiate the server
     listenfd = Open_listenfd(port);
-    while (1) {
-	clientlen = sizeof(clientaddr);
-	connfd = Accept(listenfd, (SA *)&clientaddr, (socklen_t *) &clientlen);
+        while (1) {
+            clientlen = sizeof(clientaddr);
+            connfd = Accept(listenfd, (SA *)&clientaddr, (socklen_t *) &clientlen);
+            holder = gettimeofday(&systemTime, NULL);
+            Node newRequest = createNode(connfd, systemTime);
+            pthread_mutex_lock(&lock);
 
-	// 
-	// HW3: In general, don't handle the request in the main thread.
-	// Save the relevant info in a buffer and have one of the worker threads 
-	// do the work. 
-	// 
-	requestHandle(connfd);
+            if ((getSize(wokringRequestsBuffer) + getSize(waitingRequestsBuffer) >= queueSize)) {
+                //reminder block - B, dt - T, dh - H, bf - F, random - R
 
-	Close(connfd);
+                if (schedAlgorithm == "B") {
+                    //block - wait for a new space in the buffer
+                    pthread_cond_wait(&available_buffer, &lock);
+
+                } else if (schedAlgorithm == "T") {
+                    //dt - code drops the new request immediately
+                    Close(connfd);
+                    free(newRequest);
+
+                } else if (schedAlgorithm == "H") {
+                    //dh - drop the oldest request in the waiting queue, add the new request to the end of waiting queue
+                    //check if there is at least one waiting request
+                    if (getSize(waitingRequestsBuffer) > 0) {
+                        close(getFd(getFirstRequest(waitingRequestsBuffer)));
+                        deleteCurrentNode(Dequeue(waitingRequestsBuffer));
+                        Enqueue(waitingRequestsBuffer, newRequest);
+                    } else {
+                        Close(connfd);
+                        free(newRequest);
+                    }
+
+                } else if (schedAlgorithm == "F") {
+                    //bf - waiting for all the requests in the buffers to be processed
+                    pthread_cond_wait(&flusshed_queue, &lock);
+
+                } else if (schedAlgorithm == "R") {
+                    //r - drop 50% of the waiting requests randomly
+                    if (getSize(waitingRequestsBuffer) > 0) {
+                        //make sure we are going over 50% of the queue by updating the size of the queue
+                        int size = getSize(waitingRequestsBuffer);
+                        size++;
+
+                        for (int i = 0; i < size/2; i++) {
+                            int random = rand() % (getSize(waitingRequestsBuffer));
+                            close(getFd(getFirstRequest(waitingRequestsBuffer)));
+                            deleteCurrentNode(Dequeue(waitingRequestsBuffer));
+                        }
+                    } else {
+                        Close(connfd);
+                        free(newRequest);
+                    }
+
+                }
+            } else { 
+            //add the new request to the waiting queue
+
+            // TODO -------------
+            Enqueue(waitingRequestsBuffer, newRequest);
+
+            
+            }
+
+
+            // requestHandle(connfd);
+
+            Close(connfd);
     }
 
 }

@@ -9,6 +9,9 @@
 typedef struct node_t* Node;
 
 Node createNode(int fd, struct timeval arrival);
+void deleteCurrentNode(Node toDelete);
+
+
 //int getFd(Node node);
 bool equal(Node n1, Node n2);
 

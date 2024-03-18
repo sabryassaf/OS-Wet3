@@ -3,7 +3,6 @@
 struct node_t {
     struct timeval arrivalTime;
     struct timeval dispatchTime;
-    struct timeval pickupTime;
     int fd;
     struct node_t *next;
 };
@@ -17,6 +16,13 @@ Node createNode(int fd, struct timeval arrivalTime)
         newNode->fd = fd;
     }
     return newNode;
+}
+
+void deleteCurrentNode(Node toDelete)
+{
+    if(toDelete){
+        free(toDelete);
+    }
 }
 
 /*int getFd(Node node)
@@ -35,10 +41,7 @@ struct timeval* getDispatchTime(Node node)
 {
     return &(node->dispatchTime);
 }
-struct timeval* getPickUpTime(Node node)
-{
-    return &(node->pickupTime);
-}
+
 
 // bool equal(Node n1, Node n2)
 // {
@@ -93,6 +96,14 @@ Node getFirstRequest(Queue queue)
         return queue->head;
     }
     return NULL;
+}
+
+int getFd(Node node) {
+    if (node) {
+    return node->fd;
+    }
+
+    return -1;
 }
 
 // bool find(Queue queue, Node toFind)
