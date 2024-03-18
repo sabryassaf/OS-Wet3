@@ -1,8 +1,7 @@
-#ifndef
+#ifndef QUEUE
 #include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "queue.h"
 #include "segel.h"
 
 typedef struct queue_t* Queue;

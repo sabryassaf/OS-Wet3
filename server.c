@@ -1,7 +1,7 @@
 #include "segel.h"
 #include "request.h"
 #include "thread.h"
-
+#include "queue.h"
 // 
 // server.c: A very, very simple web server
 //
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
     getargs(&port, argc, argv, &numberOfThreads, &queueSize, &schedAlgorithm);
 
     //initiate threads Array
-    pthread_t* threadsArray = malloc(numberOfThreads*(sizeof(pthread_t)));
+    pthread_t* threadsArray = malloc(numberOfThreads * (sizeof(pthread_t)));
     if (!threadsArray) {
         //malloc failed, destory pthread conditions and mutex lock
         pthread_cond_destroy(&available_buffer);
