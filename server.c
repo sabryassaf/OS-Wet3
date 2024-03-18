@@ -1,5 +1,6 @@
 #include "segel.h"
 #include "request.h"
+#include "thread.h"
 
 // 
 // server.c: A very, very simple web server
@@ -43,6 +44,9 @@ void getargs(int *port, int argc, char *argv[], int* numberOfThreads, int* queue
 
 }
 
+void* threadHandler(void* arg) {
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -98,6 +102,13 @@ int main(int argc, char *argv[])
         pthread_mutex_destroy(&lock);
     }
     
+    //initiate the threads
+    for (int i = 0; i < numberOfThreads; i++) {
+        //initiate a new thread object for each thread and attach it to the handler
+        Thread thread = 
+        //attach the threads to the thread handler
+        pthread_create(&threadsArray[i], NULL, threadHandler, NULL);
+    }
     
 
 
