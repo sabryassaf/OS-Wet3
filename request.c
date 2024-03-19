@@ -152,7 +152,10 @@ void requestServeStatic(int fd, char *filename, int filesize)
 }
 
 // handle a request
-void requestHandle(int fd)
+// changed return type from void to int in order to return if its static or not
+// static request - retrun 1
+// dynamic request - return 0
+int requestHandle(int fd)
 {
 
    int is_static;
@@ -182,13 +185,13 @@ void requestHandle(int fd)
    if (is_static) {
       if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) {
          requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not read this file");
-         return;
+         return 1;
       }
       requestServeStatic(fd, filename, sbuf.st_size);
    } else {
       if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) {
          requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not run this CGI program");
-         return;
+         return 0;
       }
       requestServeDynamic(fd, filename, cgiargs);
    }

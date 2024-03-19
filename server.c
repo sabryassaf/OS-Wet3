@@ -14,9 +14,13 @@
 
 // HW3: Parse the new arguments too
 
-
+pthread_mutex_t lock;
 Queue waitingRequestsBuffer;
 Queue wokringRequestsBuffer;
+pthread_cond_t available_buffer;
+pthread_cond_t flusshed_queue;
+pthread_cond_t new_request;
+
 void getargs(int *port, int argc, char *argv[], int* numberOfThreads, int* queueSize, char* schedAlgorithm)
 {   
 
@@ -50,7 +54,50 @@ void getargs(int *port, int argc, char *argv[], int* numberOfThreads, int* queue
 
 
 void* threadHandler(void* arg) {
+    //get the thread object
+    Thread thread = (Thread) arg;
+    while (1) {
+        pthread_mutex_lock(&lock);
+        if (getSize(waitingRequestsBuffer) == 0) {
+            //wait for a new request to be added to the buffer
+            pthread_cond_wait(&new_request, &lock);
+        }
+        //get the first request in the waiting queue
+        Node request = Dequeue(waitingRequestsBuffer);
+        
+        //add the request to the working queue
+        Enqueue(wokringRequestsBuffer, request);
+        pthread_mutex_unlock(&lock);
 
+        //handle the request
+        int type = requestHandle(getFd(request));
+        
+        // type = 1: static requet
+        // type = 0: dynamic request
+        if (type) {
+            //increate static requests
+            increaseStaticRequests(thread);
+        } else {
+            //increatse dynamic requests
+            increaseDynamicRequests(thread);
+        }
+
+        //remove the request from the working queue
+        pthread_mutex_lock(&lock);
+        deleteCurrentNode(Dequeue(wokringRequestsBuffer));
+        if (requestParseURI())
+        pthread_mutex_unlock(&lock);
+
+        //send a signal that the buffer is available
+        pthread_cond_signal(&available_buffer);
+
+        //send a signal that the queue is empty incase if its empty
+        if ((getSize(waitingRequestsBuffer) == 0) && (getSize(wokringRequestsBuffer) == 0)) {
+            pthread_cond_signal(&flusshed_queue);
+        }
+    }
+    return NULL;
+    
 }
 
 int main(int argc, char *argv[])
@@ -70,14 +117,12 @@ int main(int argc, char *argv[])
     // initiate 2 pthread condidionts to fullfill block, block_flush overload handling
 
     //pthread cond 1: will be responsible for buffer availability (Block handling)
-    pthread_cond_t available_buffer;
     int holder = pthread_cond_init(&available_buffer, NULL);
     if (holder != 0 ) {
         return 0;
     };
 
     // pthread cond 2: will be resposible for block_flush
-    pthread_cond_t flusshed_queue;
     holder = pthread_cond_init(&flusshed_queue, NULL);
     if (holder != 0 ) {
         //incase condition 2 failed, destroy condition 1
@@ -85,13 +130,22 @@ int main(int argc, char *argv[])
         return 0;
     };
     
+    
+    holder = pthread_cond_init(&new_request, NULL);
+    if (holder != 0 ) {
+        //incase condition 3 failed, destroy condition 1 and 2
+        pthread_cond_destroy(&available_buffer);
+        pthread_cond_destroy(&flusshed_queue);
+        return 0;
+    };
+
     // initiate pthread mutex lock to be used by threads
-    pthread_mutex_t lock;
     holder = pthread_mutex_init(&lock, NULL);
     if (holder != 0 ) {
         //incase lock failed, destroy the 2 conditions
         pthread_cond_destroy(&available_buffer);
         pthread_cond_destroy(&flusshed_queue);
+        pthread_cond_destroy(&new_request);
         return 0;
     }
 
@@ -104,6 +158,7 @@ int main(int argc, char *argv[])
         //malloc failed, destory pthread conditions and mutex lock
         pthread_cond_destroy(&available_buffer);
         pthread_cond_destroy(&flusshed_queue);
+        pthread_cond_destroy(&new_request);
         pthread_mutex_destroy(&lock);
     }
     
@@ -122,6 +177,7 @@ int main(int argc, char *argv[])
         //malloc failed, destory pthread conditions and mutex lock
         pthread_cond_destroy(&available_buffer);
         pthread_cond_destroy(&flusshed_queue);
+        pthread_cond_destroy(&new_request);
         pthread_mutex_destroy(&lock);
         free(threadsArray);
     }
@@ -131,6 +187,7 @@ int main(int argc, char *argv[])
         //malloc failed, destory pthread conditions and mutex lock
         pthread_cond_destroy(&available_buffer);
         pthread_cond_destroy(&flusshed_queue);
+        pthread_cond_destroy(&new_request);
         pthread_mutex_destroy(&lock);
         free(threadsArray);
         free(waitingRequestsBuffer);
@@ -193,19 +250,18 @@ int main(int argc, char *argv[])
                 }
             } else { 
             //add the new request to the waiting queue
-
-            // TODO -------------
             Enqueue(waitingRequestsBuffer, newRequest);
 
-            
+            //send a signal that there is a new request in the buffer
+            pthread_cond_signal(&new_request);
+            pthread_mutex_unlock(&lock);
+
             }
-
-
-            // requestHandle(connfd);
-
-            Close(connfd);
     }
-
+        pthread_cond_destroy(&available_buffer);
+        pthread_cond_destroy(&flusshed_queue);
+        pthread_cond_destroy(&new_request);
+        pthread_mutex_destroy(&lock);
 }
 
 

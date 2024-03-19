@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "segel.h"
-#include "node.h"
+#include <stdbool.h>
 
 //// THE NODES ARE REQUESTS
 typedef struct node_t* Node;
