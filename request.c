@@ -39,7 +39,7 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
    // get thread static requests
    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, getStatRequests(thread));
    // get thread dynamic requests
-   sprintf(buf, "%sStat-Thread-Dynamic::  %d\r\n\r\n", buf, getDynamicRequests(thread));
+   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, getDynamicRequests(thread));
 
 	Rio_writen(fd, buf, strlen(buf));
 	printf("%s", buf);

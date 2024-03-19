@@ -67,14 +67,14 @@ void* threadHandler(void* arg) {
 
         // add the request to the working queue
         Enqueue(wokringRequestsBuffer, request);
-        // pthread_mutex_unlock(&lock);
+        pthread_mutex_unlock(&lock);
 
         // handle the request
         increaseTotalReq(thread);
         requestHandle(getFd(request), thread, request);
 
         // remove the request from the working queue
-        // pthread_mutex_lock(&lock);
+        pthread_mutex_lock(&lock);
         deleteCurrentNode(Dequeue(wokringRequestsBuffer));
         pthread_mutex_unlock(&lock);
        
@@ -188,7 +188,6 @@ int main(int argc, char *argv[])
     listenfd = Open_listenfd(port);
 
         while (1) {
-            printf("here");
             clientlen = sizeof(clientaddr);
             connfd = Accept(listenfd, (SA *)&clientaddr, (socklen_t *) &clientlen);
             holder = gettimeofday(&systemTime, NULL);
