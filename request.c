@@ -5,7 +5,7 @@
 #include "segel.h"
 #include "request.h"
 // requestError(      fd,    filename,        "404",    "Not found", "OS-HW3 Server could not find this file");
-void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg, Node nodeRequest) 
+void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg, Thread thread, Node nodeRequest) 
 {
    char buf[MAXLINE], body[MAXBUF];
 
@@ -34,13 +34,13 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
    // get dispatch time
    sprintf(buf, "%sStat-Req-Dispatch:: %ld.%06ld\r\n", buf, getDispatchTime(nodeRequest)->tv_sec, getDispatchTime(nodeRequest)->tv_usec);
    // get thread id
-   sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, getId(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, getId(thread));
    // get thread count
-   sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, getTotalRequests(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, getTotalRequests(thread));
    // get thread static requests
-   sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, getStatRequests(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, getStatRequests(thread));
    // get thread dynamic requests
-   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n", buf, getDynamicRequests(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n", buf, getDynamicRequests(thread));
    // Write out the content
    Rio_writen(fd, body, strlen(body));
    printf("%s", body);
@@ -112,7 +112,7 @@ void requestGetFiletype(char *filename, char *filetype)
       strcpy(filetype, "text/plain");
 }
 
-void requestServeDynamic(int fd, char *filename, char *cgiargs, Node nodeRequest)
+void requestServeDynamic(int fd, char *filename, char *cgiargs, Thread thread, Node nodeRequest)
 {
    char buf[MAXLINE], *emptylist[] = {NULL};
 
@@ -125,13 +125,13 @@ void requestServeDynamic(int fd, char *filename, char *cgiargs, Node nodeRequest
    // get dispatch time
    sprintf(buf, "%sStat-Req-Dispatch:: %ld.%06ld\r\n", buf, getDispatchTime(nodeRequest)->tv_sec, getDispatchTime(nodeRequest)->tv_usec);
    // get thread id
-   sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, getId(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, getId(thread));
    // get thread count
-   sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, getTotalRequests(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, getTotalRequests(thread));
    // get thread static requests
-   sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, getStatRequests(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, getStatRequests(thread));
    // get thread dynamic requests
-   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n", buf, getDynamicRequests(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n", buf, getDynamicRequests(thread));
 
    Rio_writen(fd, buf, strlen(buf));
    int pid = 0;
@@ -146,7 +146,7 @@ void requestServeDynamic(int fd, char *filename, char *cgiargs, Node nodeRequest
 }
 
 
-void requestServeStatic(int fd, char *filename, int filesize, Node nodeRequest) 
+void requestServeStatic(int fd, char *filename, int filesize, Thread thread, Node nodeRequest) 
 {
    int srcfd;
    char *srcp, filetype[MAXLINE], buf[MAXBUF];
@@ -169,13 +169,15 @@ void requestServeStatic(int fd, char *filename, int filesize, Node nodeRequest)
    // get dispatch time
    sprintf(buf, "%sStat-Req-Dispatch:: %ld.%06ld\r\n", buf, getDispatchTime(nodeRequest)->tv_sec, getDispatchTime(nodeRequest)->tv_usec);
    // get thread id
-   sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, getId(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, getId(thread));
    // get thread count
-   sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, getTotalRequests(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, getTotalRequests(thread));
    // get thread static requests
-   sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, getStatRequests(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, getStatRequests(thread));
    // get thread dynamic requests
-   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n", buf, getDynamicRequests(nodeRequest));
+   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n", buf, getDynamicRequests(thread));
+
+
    sprintf(buf, "%sContent-Length: %d\r\n", buf, filesize);
    sprintf(buf, "%sContent-Type: %s\r\n\r\n", buf, filetype);
 
@@ -207,36 +209,36 @@ void requestHandle(int fd, Thread thread, Node nodeRequest)
    printf("%s %s %s\n", method, uri, version);
 
    if (strcasecmp(method, "GET")) {
-      requestError(fd, method, "501", "Not Implemented", "OS-HW3 Server does not implement this method", nodeRequest);
+      requestError(fd, method, "501", "Not Implemented", "OS-HW3 Server does not implement this method", thread, nodeRequest);
       return;
    }
    requestReadhdrs(&rio);
 
    is_static = requestParseURI(uri, filename, cgiargs);
    if (stat(filename, &sbuf) < 0) {
-      requestError(fd, filename, "404", "Not found", "OS-HW3 Server could not find this file", nodeRequest);
+      requestError(fd, filename, "404", "Not found", "OS-HW3 Server could not find this file", thread, nodeRequest);
       return;
    }
 
    if (is_static) {
       if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) {
-         requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not read this file", nodeRequest);
+         requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not read this file", thread, nodeRequest);
          return;
       }
       // static request - increase static requests number that have been handled by the provided thread
       increaseStaticReq(thread);
       increaseTotalReq(thread);
-      requestServeStatic(fd, filename, sbuf.st_size, nodeRequest);
+      requestServeStatic(fd, filename, sbuf.st_size, thread, nodeRequest);
 
    } else {
       if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) {
-         requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not run this CGI program", nodeRequest);
+         requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not run this CGI program", thread, nodeRequest);
          return;
       }
       // dynamic request - increase dynamic requests number that have been handled by the provided thread
       increaseDynamicReq(thread);
       increaseTotalReq(thread);
-      requestServeDynamic(fd, filename, cgiargs, nodeRequest);
+      requestServeDynamic(fd, filename, cgiargs, thread, nodeRequest);
    }
 }
 
