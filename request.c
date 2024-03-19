@@ -9,27 +9,26 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
 {
    char buf[MAXLINE], body[MAXBUF];
 
-   // Create the body of the error message
-   sprintf(body, "<html><title>OS-HW3 Error</title>");
-   sprintf(body, "%s<body bgcolor=""fffff"">\r\n", body);
-   sprintf(body, "%s%s: %s\r\n", body, errnum, shortmsg);
-   sprintf(body, "%s<p>%s: %s\r\n", body, longmsg, cause);
-   sprintf(body, "%s<hr>OS-HW3 Web Server\r\n", body);
+	// Create the body of the error message
+	sprintf(body, "<html><title>OS-HW3 Error</title>");
+	sprintf(body, "%s<body bgcolor=""fffff"">\r\n", body);
+	sprintf(body, "%s%s: %s\r\n", body, errnum, shortmsg);
+	sprintf(body, "%s<p>%s: %s\r\n", body, longmsg, cause);
+	sprintf(body, "%s<hr>OS-HW3 Web Server\r\n", body);
 
-   // Write out the header information for this response
-   sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
-   Rio_writen(fd, buf, strlen(buf));
-   printf("%s", buf);
+	// Write out the header information for this response
+	sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
+	Rio_writen(fd, buf, strlen(buf));
+	printf("%s", buf);
 
-   sprintf(buf, "Content-Type: text/html\r\n");
-   Rio_writen(fd, buf, strlen(buf));
-   printf("%s", buf);
+	sprintf(buf, "Content-Type: text/html\r\n");
+	Rio_writen(fd, buf, strlen(buf));
+	printf("%s", buf);
 
-   sprintf(buf, "Content-Length: %lu\r\n\r\n", strlen(body));
-   Rio_writen(fd, buf, strlen(buf));
-   printf("%s", buf);
+	sprintf(buf, "Content-Length: %lu\r\n", strlen(body));
 
-      // get arrival time
+
+  // get arrival time
    sprintf(buf, "%sStat-Req-Arrival:: %ld.%06ld\r\n", buf, getArrivalTime(nodeRequest)->tv_sec, getArrivalTime(nodeRequest)->tv_usec);
    // get dispatch time
    sprintf(buf, "%sStat-Req-Dispatch:: %ld.%06ld\r\n", buf, getDispatchTime(nodeRequest)->tv_sec, getDispatchTime(nodeRequest)->tv_usec);
@@ -40,10 +39,13 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
    // get thread static requests
    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, getStatRequests(thread));
    // get thread dynamic requests
-   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n", buf, getDynamicRequests(thread));
-   // Write out the content
-   Rio_writen(fd, body, strlen(body));
-   printf("%s", body);
+   sprintf(buf, "%sStat-Thread-Dynamic::  %d\r\n\r\n", buf, getDynamicRequests(thread));
+
+	Rio_writen(fd, buf, strlen(buf));
+	printf("%s", buf);
+	Rio_writen(fd, body, strlen(body));
+	printf("%s", body);
+
 
 }
 
@@ -163,6 +165,8 @@ void requestServeStatic(int fd, char *filename, int filesize, Thread thread, Nod
    // put together response
    sprintf(buf, "HTTP/1.0 200 OK\r\n");
    sprintf(buf, "%sServer: OS-HW3 Web Server\r\n", buf);
+	sprintf(buf, "%sContent-Length: %d\r\n", buf, filesize);
+	sprintf(buf, "%sContent-Type: %s\r\n", buf, filetype);
 
    // get arrival time
    sprintf(buf, "%sStat-Req-Arrival:: %ld.%06ld\r\n", buf, getArrivalTime(nodeRequest)->tv_sec, getArrivalTime(nodeRequest)->tv_usec);
@@ -175,11 +179,9 @@ void requestServeStatic(int fd, char *filename, int filesize, Thread thread, Nod
    // get thread static requests
    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, getStatRequests(thread));
    // get thread dynamic requests
-   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n", buf, getDynamicRequests(thread));
+   sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, getDynamicRequests(thread));
 
 
-   sprintf(buf, "%sContent-Length: %d\r\n", buf, filesize);
-   sprintf(buf, "%sContent-Type: %s\r\n\r\n", buf, filetype);
 
    Rio_writen(fd, buf, strlen(buf));
 
@@ -227,7 +229,6 @@ void requestHandle(int fd, Thread thread, Node nodeRequest)
       }
       // static request - increase static requests number that have been handled by the provided thread
       increaseStaticReq(thread);
-      increaseTotalReq(thread);
       requestServeStatic(fd, filename, sbuf.st_size, thread, nodeRequest);
 
    } else {
@@ -237,7 +238,6 @@ void requestHandle(int fd, Thread thread, Node nodeRequest)
       }
       // dynamic request - increase dynamic requests number that have been handled by the provided thread
       increaseDynamicReq(thread);
-      increaseTotalReq(thread);
       requestServeDynamic(fd, filename, cgiargs, thread, nodeRequest);
    }
 }
