@@ -1,4 +1,5 @@
 #ifndef QUEUE
+#define QUEUE
 #include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>

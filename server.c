@@ -71,7 +71,7 @@ void* threadHandler(void* arg) {
         pthread_mutex_unlock(&lock);
 
         //handle the request
-        requestHandle(getFd(request), thread);
+        requestHandle(getFd(request), thread, request);
         
 
         //remove the request from the working queue
