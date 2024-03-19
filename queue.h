@@ -19,7 +19,7 @@ bool equal(Node n1, Node n2);
 struct timeval* getArrivalTime(Node node);
 struct timeval* getDispatchTime(Node node);
 struct timeval* getPickUpTime(Node node);
-
+void setDispatchTime(Node node);
 
 // THE QUEUE IS THE REQUESTS QUEUE
 

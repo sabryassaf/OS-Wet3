@@ -67,15 +67,18 @@ void* threadHandler(void* arg) {
 
         // add the request to the working queue
         Enqueue(wokringRequestsBuffer, request);
-        pthread_mutex_unlock(&lock);
+        setDispatchTime(request);
+        // pthread_mutex_unlock(&lock);
 
         // handle the request
         increaseTotalReq(thread);
         requestHandle(getFd(request), thread, request);
 
         // remove the request from the working queue
-        pthread_mutex_lock(&lock);
-        deleteCurrentNode(Dequeue(wokringRequestsBuffer));
+        // pthread_mutex_lock(&lock);
+
+        // TODO ------ remove the finished job from working nodes
+        removeByFd(wokringRequestsBuffer, getFd(request));
         pthread_mutex_unlock(&lock);
        
 

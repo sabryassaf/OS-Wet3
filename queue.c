@@ -1,4 +1,5 @@
 #include "queue.h"
+#include <sys/time.h>
 
 struct node_t {
     struct timeval arrivalTime;
@@ -23,6 +24,11 @@ void deleteCurrentNode(Node toDelete)
     if(toDelete){
         free(toDelete);
     }
+}
+void setDispatchTime(Node node) {
+    // set dispatch time to be the current time minus arrival time
+    gettimeofday(getDispatchTime(node), NULL);
+    timersub(getDispatchTime(node), getArrivalTime(node), getDispatchTime(node));
 }
 
 /*int getFd(Node node)
