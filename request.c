@@ -4,7 +4,6 @@
 
 #include "segel.h"
 #include "request.h"
-
 // requestError(      fd,    filename,        "404",    "Not found", "OS-HW3 Server could not find this file");
 void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg) 
 {
@@ -155,7 +154,7 @@ void requestServeStatic(int fd, char *filename, int filesize)
 // changed return type from void to int in order to return if its static or not
 // static request - retrun 1
 // dynamic request - return 0
-int requestHandle(int fd)
+void requestHandle(int fd, Thread thread)
 {
 
    int is_static;
@@ -185,14 +184,21 @@ int requestHandle(int fd)
    if (is_static) {
       if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) {
          requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not read this file");
-         return 1;
+         return;
       }
+      // static request - increase static requests number that have been handled by the provided thread
+      increaseStaticReq(thread);
+      increaseTotalReq(thread);
       requestServeStatic(fd, filename, sbuf.st_size);
+
    } else {
       if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) {
          requestError(fd, filename, "403", "Forbidden", "OS-HW3 Server could not run this CGI program");
-         return 0;
+         return;
       }
+      // dynamic request - increase dynamic requests number that have been handled by the provided thread
+      increaseDynamicReq(thread);
+      increaseTotalReq(thread);
       requestServeDynamic(fd, filename, cgiargs);
    }
 }

@@ -1,5 +1,6 @@
 #ifndef __REQUEST_H__
+#include "thread.h"
 
-int requestHandle(int fd);
+void requestHandle(int fd, Thread thread);
 
 #endif

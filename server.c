@@ -2,6 +2,7 @@
 #include "request.h"
 #include "thread.h"
 #include "queue.h"
+#include <stdlib.h>
 // 
 // server.c: A very, very simple web server
 //
@@ -70,17 +71,8 @@ void* threadHandler(void* arg) {
         pthread_mutex_unlock(&lock);
 
         //handle the request
-        int type = requestHandle(getFd(request));
+        requestHandle(getFd(request), thread);
         
-        // type = 1: static requet
-        // type = 0: dynamic request
-        if (type) {
-            //increate static requests
-            increaseStaticRequests(thread);
-        } else {
-            //increatse dynamic requests
-            increaseDynamicRequests(thread);
-        }
 
         //remove the request from the working queue
         pthread_mutex_lock(&lock);
@@ -172,7 +164,7 @@ int main(int argc, char *argv[])
     }
     
     //initiate the two buffer as queue 
-     waitingRequestsBuffer = newQueue();
+     waitingRequestsBuffer = createQueue();
     if (!waitingRequestsBuffer) {
         //malloc failed, destory pthread conditions and mutex lock
         pthread_cond_destroy(&available_buffer);
@@ -182,7 +174,7 @@ int main(int argc, char *argv[])
         free(threadsArray);
     }
 
-    wokringRequestsBuffer = newQueue();
+    wokringRequestsBuffer = createQueue();
     if (!wokringRequestsBuffer) {
         //malloc failed, destory pthread conditions and mutex lock
         pthread_cond_destroy(&available_buffer);
