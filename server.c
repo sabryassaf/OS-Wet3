@@ -67,17 +67,16 @@ void* threadHandler(void* arg) {
 
         // add the request to the working queue
         Enqueue(wokringRequestsBuffer, request);
-        setDispatchTime(request);
-        // pthread_mutex_unlock(&lock);
+        
+        pthread_mutex_unlock(&lock);
 
         // handle the request
         increaseTotalReq(thread);
         requestHandle(getFd(request), thread, request);
 
         // remove the request from the working queue
-        // pthread_mutex_lock(&lock);
+        pthread_mutex_lock(&lock);
 
-        // TODO ------ remove the finished job from working nodes
         removeByFd(wokringRequestsBuffer, getFd(request));
         pthread_mutex_unlock(&lock);
        
@@ -246,6 +245,7 @@ int main(int argc, char *argv[])
             } else { 
             // add the new request to the waiting queue
             Enqueue(waitingRequestsBuffer, newRequest);
+            
 
             // send a signal that there is a new request in the buffer
             pthread_cond_signal(&new_request);

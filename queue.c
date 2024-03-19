@@ -141,6 +141,7 @@ void Enqueue(Queue queue, Node node)
         }
         temp->next = node;
         (queue->size)++;
+        setDispatchTime(node);
     }
 }
 
