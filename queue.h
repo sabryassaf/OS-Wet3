@@ -13,7 +13,7 @@ Node createNode(int fd, struct timeval arrival);
 void deleteCurrentNode(Node toDelete);
 
 
-//int getFd(Node node);
+int getFd(Node node);
 bool equal(Node n1, Node n2);
 
 struct timeval* getArrivalTime(Node node);

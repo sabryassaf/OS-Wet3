@@ -141,7 +141,6 @@ void Enqueue(Queue queue, Node node)
         }
         temp->next = node;
         (queue->size)++;
-        setDispatchTime(node);
     }
 }
 
@@ -192,7 +191,7 @@ void removeByFd(Queue queue, int fd)
         }
         if(temp->next) {
             Node toDelete = temp->next;
-            temp->next = toDelete->next;
+            temp->next = temp->next->next;
             close(toDelete->fd);
             free(toDelete);
             (queue->size)--;

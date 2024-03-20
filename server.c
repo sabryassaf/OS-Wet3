@@ -58,7 +58,7 @@ void* threadHandler(void* arg) {
     Thread thread = (Thread) arg;
     while (1) {
         pthread_mutex_lock(&lock);
-        if (getSize(waitingRequestsBuffer) == 0) {
+        while (getSize(waitingRequestsBuffer) == 0) {
             // wait for a new request to be added to the buffer
             pthread_cond_wait(&new_request, &lock);
         }
@@ -67,11 +67,12 @@ void* threadHandler(void* arg) {
 
         // add the request to the working queue
         Enqueue(wokringRequestsBuffer, request);
-        
+        setDispatchTime(request);
+        increaseTotalReq(thread);
         pthread_mutex_unlock(&lock);
 
         // handle the request
-        increaseTotalReq(thread);
+
         requestHandle(getFd(request), thread, request);
 
         // remove the request from the working queue
@@ -84,10 +85,12 @@ void* threadHandler(void* arg) {
         // send a signal that the buffer is available
         pthread_cond_signal(&available_buffer);
         
+        pthread_mutex_lock(&lock);
         // send a signal that the queue is empty incase if its empty
         if ((getSize(waitingRequestsBuffer) == 0) && (getSize(wokringRequestsBuffer) == 0)) {
             pthread_cond_signal(&flusshed_queue);
         }
+        pthread_mutex_unlock(&lock);
     }
     return NULL;
     
@@ -108,6 +111,7 @@ int main(int argc, char *argv[])
 
     struct sockaddr_in clientaddr;
 
+    getargs(&port, argc, argv, &numberOfThreads, &queueSize, &schedAlgorithm);
     // initiate 2 pthread condidionts to fullfill block, block_flush overload handling
 
     //pthread cond 1: will be responsible for buffer availability (Block handling)
@@ -142,8 +146,6 @@ int main(int argc, char *argv[])
         pthread_cond_destroy(&new_request);
         return 0;
     }
-
-    getargs(&port, argc, argv, &numberOfThreads, &queueSize, &schedAlgorithm);
 
     // initiate threads Array
     pthread_t* threadsArray = malloc(numberOfThreads * (sizeof(pthread_t)));
@@ -207,6 +209,8 @@ int main(int argc, char *argv[])
                     // dt - code drops the new request immediately
                     Close(connfd);
                     free(newRequest);
+                    pthread_mutex_unlock(&lock);
+                    continue;
 
                 } else if (schedAlgorithm == 'H') {
                     // dh - drop the oldest request in the waiting queue, add the new request to the end of waiting queue
@@ -214,15 +218,21 @@ int main(int argc, char *argv[])
                     if (getSize(waitingRequestsBuffer) > 0) {
                         close(getFd(getFirstRequest(waitingRequestsBuffer)));
                         deleteCurrentNode(Dequeue(waitingRequestsBuffer));
-                        Enqueue(waitingRequestsBuffer, newRequest);
                     } else {
+                        // if there is no waiting request, drop the new request and continue listening
                         Close(connfd);
-                        free(newRequest);
+                        free(newRequest); 
+                        pthread_mutex_unlock(&lock);
+                        continue;
                     }
 
                 } else if (schedAlgorithm == 'F') {
                     // bf - waiting for all the requests in the buffers to be processed
                     pthread_cond_wait(&flusshed_queue, &lock);
+                    Close(connfd);
+                    free(newRequest);
+                    pthread_mutex_unlock(&lock);
+                    continue;
 
                 } else if (schedAlgorithm == 'R') {
                     // r - drop 50% of the waiting requests randomly
@@ -233,16 +243,17 @@ int main(int argc, char *argv[])
 
                         for (int i = 0; i < size/2; i++) {
                             int random = rand() % (getSize(waitingRequestsBuffer));
-                            close(getFd(getFirstRequest(waitingRequestsBuffer)));
-                            deleteCurrentNode(Dequeue(waitingRequestsBuffer));
+                            removeByIndex(waitingRequestsBuffer, random);
                         }
                     } else {
                         Close(connfd);
                         free(newRequest);
+                        pthread_mutex_unlock(&lock);
+                        continue;
                     }
 
                 }
-            } else { 
+            } 
             // add the new request to the waiting queue
             Enqueue(waitingRequestsBuffer, newRequest);
             
@@ -251,7 +262,7 @@ int main(int argc, char *argv[])
             pthread_cond_signal(&new_request);
             pthread_mutex_unlock(&lock);
 
-            }
+            
     }
         pthread_cond_destroy(&available_buffer);
         pthread_cond_destroy(&flusshed_queue);
